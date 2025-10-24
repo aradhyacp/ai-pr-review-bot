@@ -5,7 +5,7 @@ import fs from "fs/promises";
 
 dotenv.config();
 
-const GITHUB_TOKEN = process.env.COMMENT_GITHUB_TOKEN;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const REPO = process.env.GITHUB_REPOSITORY;
 const EVENT_PATH = process.env.GITHUB_EVENT_PATH;
@@ -83,7 +83,7 @@ ${text.weaknesses}
       }\n*Score: ${s.score}/5*\n`;
     }
 
-    console.log(commentBody, prNumber, apiUrl, REPO);
+    console.log(commentBody, prNumber, apiUrl, REPO;
 
     const res = await fetch(`${apiUrl}/issues/${prNumber}/comments`, {
       method: "POST",
@@ -101,7 +101,7 @@ ${commentBody}
 - Model Response Time: ${modelResponseTime}s`,
       }),
       headers: {
-        "Authorization": `Bearer ${GITHUB_TOKEN}`,
+        Authorization : `Bearer ${GITHUB_TOKEN}`,
         "Content-Type": "application/json",
       },
     });
