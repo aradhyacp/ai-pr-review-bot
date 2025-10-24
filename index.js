@@ -83,7 +83,7 @@ ${text.weaknesses}
       }\n*Score: ${s.score}/5*\n`;
     }
 
-    console.log(commentBody, prNumber, apiUrl, REPO, GITHUB_TOKEN);
+    console.log(commentBody, prNumber, apiUrl, REPO);
 
     const res = await fetch(`${apiUrl}/issues/${prNumber}/comments`, {
       method: "POST",
@@ -101,7 +101,7 @@ ${commentBody}
 - Model Response Time: ${modelResponseTime}s`,
       }),
       headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        "Authorization": `Bearer ${GITHUB_TOKEN}`,
         "Content-Type": "application/json",
       },
     });
