@@ -109,7 +109,7 @@ ${commentBody}
     else throw Error("❌ Failed to post comment:", await res.text());
   } catch (error) {
     console.error("Gemini error:", error);
-    if (retry <= maxRetry) {
+    if (retry < maxRetry) {
       aiPRBot();
       retry++;
     } else {
@@ -117,3 +117,4 @@ ${commentBody}
     }
   }
 };
+aiPRBot();
