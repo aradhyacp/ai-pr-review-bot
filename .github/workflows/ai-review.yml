@@ -28,4 +28,4 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_API_URL: ${{ github.api_url }}
         run: node index.js
-        working-directory: ./ai-review
+        # working-directory: ./ai-review
