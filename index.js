@@ -82,7 +82,7 @@ ${text.weaknesses}
 
   console.log(commentBody);
 
-  const res = await fetch(`${apiUrl}/repos/${REPO}/issues/${prNumber}/comments`, {
+  const res = await fetch(`${apiUrl}/issues/${prNumber}/comments`, {
     method: "POST",
     body: JSON.stringify({
       body: `
