@@ -5,7 +5,7 @@ import fs from "fs/promises";
 
 dotenv.config();
 
-const GITHUB_TOKEN = process.env.COMMENT_GITHUB_TOKEN;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const REPO = process.env.GITHUB_REPOSITORY;
 const EVENT_PATH = process.env.GITHUB_EVENT_PATH;
