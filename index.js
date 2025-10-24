@@ -82,7 +82,7 @@ ${text.weaknesses}
 
   console.log(commentBody);
 
-  const res = await fetch(`${apiUrl}/repo/${REPO}/issues/${prNumber}/comments`, {
+  const res = await fetch(`${apiUrl}/repos/${REPO}/issues/${prNumber}/comments`, {
     method: "POST",
     body: JSON.stringify({
       body: `
@@ -103,7 +103,7 @@ ${commentBody}
     },
   });
   if (res.ok) console.log("✅ Comment posted successfully.");
-  else console.error("❌ Failed to post comment:", await res.text());
+  else throw Error("❌ Failed to post comment:", await res.text());
 
 } catch (error) {
   console.error("Gemini error:", error);
