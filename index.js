@@ -106,7 +106,7 @@ ${commentBody}
       },
     });
     if (res.ok) console.log("✅ Comment posted successfully.");
-    else throw Error(`❌ Failed to post comment: ${res}`);
+    else throw Error(`❌ Failed to post comment: ${JSON.stringify(res)}`);
   } catch (error) {
     console.error("Gemini error:", error);
     if (retry < maxRetry) {
