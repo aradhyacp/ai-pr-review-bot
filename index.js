@@ -83,7 +83,7 @@ ${text.weaknesses}
       }\n*Score: ${s.score}/5*\n`;
     }
 
-    console.log(commentBody);
+    console.log(commentBody, prNumber, apiUrl, REPO);
 
     const res = await fetch(`${apiUrl}/issues/${prNumber}/comments`, {
       method: "POST",
@@ -106,7 +106,7 @@ ${commentBody}
       },
     });
     if (res.ok) console.log("✅ Comment posted successfully.");
-    else throw Error("❌ Failed to post comment:", await res.text());
+    else throw Error(`❌ Failed to post comment: ${res}`);
   } catch (error) {
     console.error("Gemini error:", error);
     if (retry < maxRetry) {
