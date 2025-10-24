@@ -83,7 +83,7 @@ ${text.weaknesses}
       }\n*Score: ${s.score}/5*\n`;
     }
 
-    console.log(commentBody, prNumber, apiUrl, REPO);
+    console.log(commentBody, prNumber, apiUrl, REPO, GITHUB_TOKEN);
 
     const res = await fetch(`${apiUrl}/issues/${prNumber}/comments`, {
       method: "POST",
@@ -101,12 +101,15 @@ ${commentBody}
 - Model Response Time: ${modelResponseTime}s`,
       }),
       headers: {
-        Authorization: `bearer ${GITHUB_TOKEN}`,
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
         "Content-Type": "application/json",
       },
     });
     if (res.ok) console.log("✅ Comment posted successfully.");
-    else throw Error(`❌ Failed to post comment: ${JSON.stringify(res)}`);
+    else if (!res.ok) {
+  const err = await res.text();
+  throw new Error(`❌ Failed to post comment: ${res.status} ${res.statusText}\n${err}`);
+}
   } catch (error) {
     console.error("Gemini error:", error);
     if (retry < maxRetry) {
