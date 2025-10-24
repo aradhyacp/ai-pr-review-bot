@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ./ai-review
+        # working-directory: ./ai-pr-review-bot
 
       - name: Run AI review
         env:
