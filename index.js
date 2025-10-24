@@ -1,32 +1,33 @@
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
-import express from "express";
 import diff_extractor from "./diff_extractor.js";
+import fs from "fs/promises";
 
 dotenv.config();
-const app = express();
-const port = process.env.PORT || 3000;
 
-app.use(express.json());
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const REPO = process.env.GITHUB_REPOSITORY;
+const EVENT_PATH = process.env.GITHUB_EVENT_PATH;
+
+const eventData = JSON.parse(await fs.readFile(EVENT_PATH, "utf8"));
+const prNumber = eventData.pull_request.number;
+const apiUrl = `https://api.github.com/repos/${REPO}`;
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: GEMINI_API_KEY,
 });
 
-app.get("/", (req, res) => {
-  return res.json({
-    message: "working perfectly",
-  });
-});
+const diffText = await diff_extractor(`${apiUrl}/pulls/${prNumber}/files`);
 
-app.get("/diff_pull", async (req, res) => {
-  const url = req.body.url;
-  const diff = await diff_extractor(url);
-  console.log(diff);
+if (!diffText) {
+  console.log("No diff found. Exiting.");
+  process.exit(0);
+}
 
-  const prompt = `
+const prompt = `
 You are a senior software engineer performing an AI code review. Review the following GitHub Pull Request diff:
-${diff.slice(0, 12000)}
+${diffText.slice(0, 12000)}
 Provide:
 Provide a JSON response with the following:
 
@@ -52,21 +53,18 @@ Strictly Return output as json in below format:
     }],
 }
 `;
-  try {
-    const start = Date.now();
-    const response = await ai.models.generateContent({
-      model: "gemini-flash-lite-latest",
-      contents: prompt,
-    });
-    console.log(response.text);
-    
-    const text = await JSON.parse(response.text);
-    const end = Date.now();
-    const modelResponseTime = (end - start) / 1000;
-    console.log(response.text);
-    console.log(text);
-    
-    let commentBody = `
+console.log("Sending code to Gemini...");
+
+try {
+  const start = Date.now();
+  const response = await ai.models.generateContent({
+    model: "gemini-flash-lite-latest",
+    contents: prompt,
+  });
+  const text = await JSON.parse(response.text);
+  const end = Date.now();
+  const modelResponseTime = (end - start) / 1000;
+  let commentBody = `
 ${text.summary}
 
 **Weaknesses:**  
@@ -75,19 +73,19 @@ ${text.weaknesses}
 **Suggestions:**
 `;
 
-for (let i = 0; i < text.suggestions.length; i++) {
-  const s = text.suggestions[i];
-  commentBody += `\n${i + 1}. **[${s.category.toUpperCase()}]** — ${s.issue}\n*Score: ${s.score}/5*\n`;
-}
+  for (let i = 0; i < text.suggestions.length; i++) {
+    const s = text.suggestions[i];
+    commentBody += `\n${i + 1}. **[${s.category.toUpperCase()}]** — ${
+      s.issue
+    }\n*Score: ${s.score}/5*\n`;
+  }
 
-console.log(commentBody);
+  console.log(commentBody);
 
-    const github_comment = await fetch(
-      "https://api.github.com/repos/kshitij-singh06/Secure-wipe/issues/5/comments",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          body: `
+  const res = await fetch(`${apiUrl}/issues/${prNumber}/comments`, {
+    method: "POST",
+    body: JSON.stringify({
+      body: `
 # AI PR REVIEW BOT
 
 ${commentBody}
@@ -98,40 +96,16 @@ ${commentBody}
 - Total Tokens: ${response.usageMetadata.totalTokenCount}
 - Thoughts Tokens: ${response.usageMetadata.thoughtsTokenCount}
 - Model Response Time: ${modelResponseTime}s`,
-        }),
-        headers: {
-          Authorization: `bearer ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    return res.json({
-      response: text,
-      modelVersion: response.modelVersion,
-      promptTokenCount: response.usageMetadata.promptTokenCount,
-      candidatesTokenCount: response.usageMetadata.candidatesTokenCount,
-      totalTokenCount: response.usageMetadata.totalTokenCount,
-      thoughtsTokenCount: response.usageMetadata.thoughtsTokenCount,
-      modelResponseTime: modelResponseTime,
-    //   github_comment,
-    });
-  } catch (error) {
-    console.error("Gemini error:", error);
-    res.status(500).json({ error: "Something went wrong." });
-  }
-});
-
-app.use((err, req, res, next) => {
-  console.log(err);
-  return res.status(400).json({
-    message: "internal server error ",
+    }),
+    headers: {
+      Authorization: `bearer ${GITHUB_TOKEN}`,
+      "Content-Type": "application/json",
+    },
   });
-});
+  if (res.ok) console.log("✅ Comment posted successfully.");
+  else console.error("❌ Failed to post comment:", await res.text());
 
-app.use((req, res, next) => {
-  res.status(404).json({ message: "Route not found" });
-});
-
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+} catch (error) {
+  console.error("Gemini error:", error);
+  process.exit(1);
+}
