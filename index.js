@@ -55,16 +55,19 @@ Strictly Return output as json in below format:
 `;
 console.log("Sending code to Gemini...");
 
-try {
-  const start = Date.now();
-  const response = await ai.models.generateContent({
-    model: "gemini-flash-lite-latest",
-    contents: prompt,
-  });
-  const text = await JSON.parse(response.text);
-  const end = Date.now();
-  const modelResponseTime = (end - start) / 1000;
-  let commentBody = `
+let retry = 0;
+const maxRetry = 3;
+const aiPRBot = async () => {
+  try {
+    const start = Date.now();
+    const response = await ai.models.generateContent({
+      model: "gemini-flash-lite-latest",
+      contents: prompt,
+    });
+    const text = await JSON.parse(response.text);
+    const end = Date.now();
+    const modelResponseTime = (end - start) / 1000;
+    let commentBody = `
 ${text.summary}
 
 **Weaknesses:**  
@@ -73,19 +76,19 @@ ${text.weaknesses}
 **Suggestions:**
 `;
 
-  for (let i = 0; i < text.suggestions.length; i++) {
-    const s = text.suggestions[i];
-    commentBody += `\n${i + 1}. **[${s.category.toUpperCase()}]** — ${
-      s.issue
-    }\n*Score: ${s.score}/5*\n`;
-  }
+    for (let i = 0; i < text.suggestions.length; i++) {
+      const s = text.suggestions[i];
+      commentBody += `\n${i + 1}. **[${s.category.toUpperCase()}]** — ${
+        s.issue
+      }\n*Score: ${s.score}/5*\n`;
+    }
 
-  console.log(commentBody);
+    console.log(commentBody);
 
-  const res = await fetch(`${apiUrl}/issues/${prNumber}/comments`, {
-    method: "POST",
-    body: JSON.stringify({
-      body: `
+    const res = await fetch(`${apiUrl}/issues/${prNumber}/comments`, {
+      method: "POST",
+      body: JSON.stringify({
+        body: `
 # AI PR REVIEW BOT
 
 ${commentBody}
@@ -96,16 +99,21 @@ ${commentBody}
 - Total Tokens: ${response.usageMetadata.totalTokenCount}
 - Thoughts Tokens: ${response.usageMetadata.thoughtsTokenCount}
 - Model Response Time: ${modelResponseTime}s`,
-    }),
-    headers: {
-      Authorization: `bearer ${GITHUB_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-  });
-  if (res.ok) console.log("✅ Comment posted successfully.");
-  else throw Error("❌ Failed to post comment:", await res.text());
-
-} catch (error) {
-  console.error("Gemini error:", error);
-  process.exit(1);
-}
+      }),
+      headers: {
+        Authorization: `bearer ${GITHUB_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (res.ok) console.log("✅ Comment posted successfully.");
+    else throw Error("❌ Failed to post comment:", await res.text());
+  } catch (error) {
+    console.error("Gemini error:", error);
+    if (retry <= maxRetry) {
+      aiPRBot();
+      retry++;
+    } else {
+      process.exit(1);
+    }
+  }
+};
